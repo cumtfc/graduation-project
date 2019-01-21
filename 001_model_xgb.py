@@ -10,7 +10,6 @@ from sklearn import metrics
 from imblearn.combine import SMOTEENN
 from win32timezone import now
 
-
 warnings.filterwarnings("ignore")
 
 
@@ -46,9 +45,8 @@ def xgbCV(train, test, features, target):
               'tree_method': 'gpu_hist'
               # 'scale_pos_weight':0.5
               }
-    gbm = xgb.train(params, X_train_set, num_boost_round=3000, evals=watchlist, early_stopping_rounds=50)
-
-    best_iter_num = gbm.best_iteration
+    # gbm = xgb.train(params, X_train_set, num_boost_round=3000, evals=watchlist, early_stopping_rounds=50)
+    history = xgb.cv(params, X_train_set, num_boost_round=3000, nfold=5, early_stopping_rounds=50)
     return best_iter_num
 
 
@@ -73,6 +71,7 @@ def sub(train, test, features, target, best_iter_num):
               # 'scale_pos_weight':0.5
               }
     bst = xgb.train(params, X_train_set, num_boost_round=best_iter_num)
+    bst
     bst.save_model('001.model')
     # pred = gbm.predict(X_test_set)
     # test['predicted_score'] = pred
@@ -82,6 +81,14 @@ def sub(train, test, features, target, best_iter_num):
 
 
 def train():
+    # train_data = rebalance()
+    print("starting CV:", now())
+    best_iter = xgbCV(train_data, test_data, features, target)
+    print('最佳迭代次数：', best_iter)
+    sub(train_data, test_data, features, target, best_iter)
+
+
+def rebalance():
     sm = SMOTEENN()
     train_data.replace(to_replace=np.nan, value=0, inplace=True)
     train_data.replace(to_replace=-np.inf, value=0, inplace=True)
@@ -93,10 +100,7 @@ def train():
     X_resampled['is_trade'] = y_resampled['is_trade']
     del y_resampled
     gc.collect()
-    print("starting CV:", now())
-    best_iter = xgbCV(X_resampled, test_data, features, target)
-    print('最佳迭代次数：', best_iter)
-    sub(train_data, test_data, features, target, best_iter)
+    return X_resampled
 
 
 def count():
